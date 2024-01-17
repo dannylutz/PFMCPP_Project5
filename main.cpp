@@ -210,14 +210,7 @@ void AudioInput::processInputStream(bool shouldProcess)
 
 void AudioInput::invertInputPolarity(bool invert)
 {
-    if (invert)
-    {
-        polarity = true;
-    }
-    else
-    {
-        polarity = false;
-    }
+    polarity = invert;
 }
 
 double AudioInput::AudioInputProperties::getSampleRate()
@@ -385,13 +378,14 @@ void SamplePlayer::Sample::loadingFileProgress(double lengthOfFile)
     while (lengthOfFile > 0) 
     {
         lengthOfFile -= dataChunk;
-        if (lengthOfFile < 0) {
+        if (lengthOfFile < 0)
+        {
             lengthOfFile = 0;
-    }
+        }
 
-    double loadedPercentage = 100.0 * (1 - (lengthOfFile / originalLength));
-    std::cout << "\nLoading progress: " << loadedPercentage << "%\n";
-    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dataChunk / loadRate * 250)));
+        double loadedPercentage = 100.0 * (1 - (lengthOfFile / originalLength));
+        std::cout << "\nLoading progress: " << loadedPercentage << "%\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dataChunk / loadRate * 250)));
     }
     ++index;
     std::cout << "\nLoading complete. Sample available at index " + std::to_string(index) + "\n" << std::endl;

@@ -96,6 +96,7 @@ struct SimpleOscillator
     void sendOutputToOtherDevices(double output);
     void acceptControlVoltage(bool externalCV);
     void sweepFrequencies(double startFrequency, double stopFrequency, double timeInSeconds);
+    void printThisOscillator();
 };
 
 SimpleOscillator::SimpleOscillator(): drift(0.213), output(0.707)
@@ -146,6 +147,11 @@ void SimpleOscillator::sweepFrequencies(double startFq, double stopFq, double nu
     }
 }
 
+void SimpleOscillator::printThisOscillator()
+{
+    std::cout << "\nSetting Oscillator Frequency to " + std::to_string(this->frequency) + " Hz\n" << std::endl;
+}
+
 /*
  copied UDT 2:
  */
@@ -172,12 +178,14 @@ struct AudioInput
         void setAudioDevice(int audioDeviceID);
         std::string getAudioProps(AudioInput audioInput);
         void setDefaultDeviceSettings();
+        void printThisAudioInputProperties(); 
     };
 
     void setInputAmplitude(double amplitude);
     void processInputStream(bool process);
     void invertInputPolarity(bool polarity);
     void increaseSaturation();
+    void printThisAudioInput();
 };
 
 AudioInput::AudioInput(): polarity(false)
@@ -216,6 +224,11 @@ void AudioInput::processInputStream(bool shouldProcess)
 void AudioInput::invertInputPolarity(bool invert)
 {
     polarity = invert;
+}
+
+void AudioInput::printThisAudioInput()
+{
+    std::cout << "\nSetting Input Amplitude to " + std::to_string(this->amplitude) + " \n" << std::endl;
 }
 
 double AudioInput::AudioInputProperties::getSampleRate()
@@ -272,6 +285,11 @@ void AudioInput::AudioInputProperties::setDefaultDeviceSettings()
     }
 }
 
+void AudioInput::AudioInputProperties::printThisAudioInputProperties()
+{    
+    std::cout << "Audio Device sample rate is set to " + std::to_string(this->sampleRate) + "\n" << std::endl;
+}
+
 /*
  copied UDT 3:
  */
@@ -300,12 +318,14 @@ struct SamplePlayer
         void loadSample(std::string audioFile);
         void reduceBitDepth(int bitDepth, int bitDepthReduction = 2);
         void loadingFileProgress(double length);
+        void printThisSample();
     };
 
     void modulateSampleRate(SimpleOscillator oscillator);    
     void playSample();
     void loopSample();
     void loopSampleNTimes(int numOfLoops);
+    void printThisSamplePlayer();
 };
 
 SamplePlayer::SamplePlayer(): loopStart(127900), loopEnd(865000)
@@ -352,6 +372,11 @@ void SamplePlayer::loopSampleNTimes(int numOfLoops)
     loop = false;
 }
 
+void SamplePlayer::printThisSamplePlayer()
+{
+    std::cout << "\nPlayback at a sample rate of " + std::to_string(this->sampleRate) << std::endl;
+}
+
 SamplePlayer::Sample::Sample(): length(2000.0), index(0)
 {
     std::cout << "\nSample being constructed!\n" << std::endl;
@@ -394,6 +419,11 @@ void SamplePlayer::Sample::loadingFileProgress(double lengthOfFile)
     }
     ++index;
     std::cout << "\nLoading complete. Sample available at index " + std::to_string(index) + "\n" << std::endl;
+}
+
+void SamplePlayer::Sample::printThisSample()
+{
+    std::cout << "\nBit depth reduced to " + std::to_string(this->bitDepth) + " bits\n" << std::endl;
 }
 /*
  new UDT 4:
@@ -503,27 +533,34 @@ int main()
     osc.setOscillatorFrequency(9.0210);
     osc.acceptControlVoltage(true);
     osc.sendOutputToOtherDevices(107.3);
-    std::cout << "Setting Oscillator Frequency to " + std::to_string(osc.frequency) + " Hz\n" << std::endl;
-    osc.sweepFrequencies(45, 6000, 2);
+    osc.sweepFrequencies(45, 6000, 1);
+    std::cout << "\nSetting Oscillator Frequency to " + std::to_string(osc.frequency) + " Hz\n" << std::endl;
+    osc.printThisOscillator();
+    
+    
 
     AudioInput audioInput;
     audioInput.processInputStream(true);
     audioInput.invertInputPolarity(false);
     audioInput.setInputAmplitude(3.9);
     audioInput.increaseSaturation();
-    std::cout << "Setting Input Amplitude to " + std::to_string(audioInput.amplitude) + " \n" << std::endl;
+    std::cout << "\nSetting Input Amplitude to " + std::to_string(audioInput.amplitude) + " \n" << std::endl;
+    audioInput.printThisAudioInput();
 
     SamplePlayer playa;
     playa.playSample();
     playa.loopSample();
     playa.modulateSampleRate(osc);
     playa.loopSampleNTimes(12);
+    std::cout << "\nPlayback at a sample rate of " + std::to_string(playa.sampleRate) << std::endl;
+    playa.printThisSamplePlayer();
 
     SamplePlayer::Sample sampl;
     sampl.loadSample("./samples/snare.wav");
     sampl.printSampleInfo();
     sampl.loadingFileProgress(5000);
     std::cout << "Bit depth reduced to " + std::to_string(sampl.bitDepth) + " bits\n" << std::endl;
+    sampl.printThisSample();
 
     AudioInput::AudioInputProperties audioInputProps;
     audioInputProps.getAudioProps(audioInput);
@@ -534,8 +571,8 @@ int main()
     audioInputProps.setDefaultDeviceSettings();
     audioInputProps.setAudioDevice(0);
     audioInputProps.setDefaultDeviceSettings();
-
     std::cout << "Audio Device sample rate is set to " + std::to_string(audioInputProps.sampleRate) + "\n" << std::endl;
+    audioInputProps.printThisAudioInputProperties();
 
     NoiseMaker noizy;
     noizy.makeNoise(9.0210, 12);

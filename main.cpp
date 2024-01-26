@@ -83,6 +83,7 @@ void Axe::aConstMemberFunction() const { }
 #include <chrono>
 #include <thread>
 #include <random>
+#include "LeakedObjectDetector.h"
 /*
  copied UDT 1:
  */
@@ -98,9 +99,11 @@ struct SimpleOscillator
 
     void setOscillatorFrequency(double frequency);
     void sendOutputToOtherDevices(double output);
-    void acceptControlVoltage(bool externalCV);
+    void acceptControlVoltage(bool externalCV) const;
     void sweepFrequencies(double startFrequency, double stopFrequency, double timeInSeconds);
-    void printThisOscillator();
+    void printThisOscillator() const;
+
+    JUCE_LEAK_DETECTOR(SimpleOscillator)
 };
 
 SimpleOscillator::SimpleOscillator(): drift(0.213), output(0.707)
@@ -123,7 +126,7 @@ void SimpleOscillator::sendOutputToOtherDevices(double extOutput)
     output = extOutput;
 }
 
-void SimpleOscillator::acceptControlVoltage(bool externalCV)
+void SimpleOscillator::acceptControlVoltage(bool externalCV) const
 {
     if (externalCV)
     {
@@ -151,10 +154,22 @@ void SimpleOscillator::sweepFrequencies(double startFq, double stopFq, double nu
     }
 }
 
-void SimpleOscillator::printThisOscillator()
+void SimpleOscillator::printThisOscillator() const
 {
     std::cout << "\nSetting Oscillator Frequency to " + std::to_string(this->frequency) + " Hz\n" << std::endl;
 }
+
+struct SimpleOscillatorWrapper
+{
+    SimpleOscillator* oscPtr{nullptr};
+
+    SimpleOscillatorWrapper(SimpleOscillator* ptr) : oscPtr(ptr) {}
+    ~SimpleOscillatorWrapper()
+    {
+        delete oscPtr;
+    }
+    JUCE_LEAK_DETECTOR(SimpleOscillatorWrapper)
+};
 
 /*
  copied UDT 2:
@@ -177,19 +192,23 @@ struct AudioInput
 
         double sampleRate = 44100.0;
         int channels, bitDepth, bufferSize, deviceID;
-        double getSampleRate();
-
+        
+        double getSampleRate() const;
         void setAudioDevice(int audioDeviceID);
-        std::string getAudioProps(AudioInput audioInput);
+        std::string getAudioProps(AudioInput& audioInput) const;
         void setDefaultDeviceSettings();
-        void printThisAudioInputProperties(); 
+        void printThisAudioInputProperties() const; 
+
+        JUCE_LEAK_DETECTOR(AudioInputProperties)
     };
 
     void setInputAmplitude(double amplitude);
     void processInputStream(bool process);
     void invertInputPolarity(bool polarity);
     void increaseSaturation();
-    void printThisAudioInput();
+    void printThisAudioInput() const;
+
+    JUCE_LEAK_DETECTOR(AudioInput)
 };
 
 AudioInput::AudioInput(): polarity(false)
@@ -230,12 +249,12 @@ void AudioInput::invertInputPolarity(bool invert)
     polarity = invert;
 }
 
-void AudioInput::printThisAudioInput()
+void AudioInput::printThisAudioInput() const
 {
     std::cout << "\nSetting Input Amplitude to " + std::to_string(this->amplitude) + " \n" << std::endl;
 }
 
-double AudioInput::AudioInputProperties::getSampleRate()
+double AudioInput::AudioInputProperties::getSampleRate() const
 {
     return sampleRate;
 }
@@ -245,7 +264,7 @@ void AudioInput::AudioInputProperties::setAudioDevice(int devID)
     deviceID = devID;
 }
 
-std::string AudioInput::AudioInputProperties::getAudioProps(AudioInput inputAudio)
+std::string AudioInput::AudioInputProperties::getAudioProps(AudioInput& inputAudio) const
 {
     std::string audioProps = "\nSample Rate: " + std::to_string(inputAudio.amplitude) + " Number of Channels: " + std::to_string(inputAudio.stereo) +
                              std::to_string(inputAudio.hpfCutoff) + " Resonance: " + std::to_string(inputAudio.saturation) + "\nPolarity: " + std::to_string(inputAudio.polarity) + "\n";
@@ -289,10 +308,22 @@ void AudioInput::AudioInputProperties::setDefaultDeviceSettings()
     }
 }
 
-void AudioInput::AudioInputProperties::printThisAudioInputProperties()
+void AudioInput::AudioInputProperties::printThisAudioInputProperties() const
 {    
     std::cout << "Audio Device sample rate is set to " + std::to_string(this->sampleRate) + "\n" << std::endl;
 }
+
+struct AudioInputWrapper
+{
+    AudioInput* inputPtr{nullptr};
+
+    AudioInputWrapper(AudioInput* ptr) : inputPtr(ptr) {}
+    ~AudioInputWrapper()
+    {
+        delete inputPtr;
+    }
+    JUCE_LEAK_DETECTOR(AudioInputWrapper)
+};
 
 /*
  copied UDT 3:
@@ -318,18 +349,22 @@ struct SamplePlayer
         double length;
         int index;
 
-        std::string printSampleInfo();
-        void loadSample(std::string audioFile);
+        std::string printSampleInfo() const;
+        void loadSample(std::string audioFile) const;
         void reduceBitDepth(int bitDepth, int bitDepthReduction = 2);
         void loadingFileProgress(double length);
-        void printThisSample();
+        void printThisSample() const;
+
+        JUCE_LEAK_DETECTOR(Sample)
     };
 
-    void modulateSampleRate(SimpleOscillator oscillator);    
-    void playSample();
+    void modulateSampleRate(double rate);    
+    void playSample() const;
     void loopSample();
     void loopSampleNTimes(int numOfLoops);
-    void printThisSamplePlayer();
+    void printThisSamplePlayer() const;
+
+    JUCE_LEAK_DETECTOR(SamplePlayer)
 };
 
 SamplePlayer::SamplePlayer(): loopStart(127900), loopEnd(865000)
@@ -342,12 +377,12 @@ SamplePlayer::~SamplePlayer()
     std::cout << "\nSamplePlayer being destructed!\n" << std::endl;
 }
 
-void SamplePlayer::Sample::loadSample(std::string audioFileToLoad)
+void SamplePlayer::Sample::loadSample(std::string audioFileToLoad) const
 {
     std::cout << "\nThe sample " + audioFileToLoad + " has been loaded \n" << std::endl;
 }
 
-void SamplePlayer::playSample()
+void SamplePlayer::playSample() const
 {
     std::cout << "\nNow playing the loaded sample\n" << std::endl;
 }
@@ -358,9 +393,9 @@ void SamplePlayer::loopSample()
     std::cout << "\nLooping file from sample number" + std::to_string(loopStart) + " to sample number " + std::to_string(loopEnd) << std::endl;
 }
 
-void SamplePlayer::modulateSampleRate(SimpleOscillator oscillator)
+void SamplePlayer::modulateSampleRate(double rate)
 {
-    std::cout << "\nSample rate of " + std::to_string(sampleRate) + " is being modulated by the simple oscillator's frequency of " + std::to_string(oscillator.frequency) + "and the simple oscillator's frequency. Also, bananas are berries and strawberries are not!!\n" << std::endl;
+    std::cout << "\nSample rate of " + std::to_string(sampleRate) + " is being modulated by the simple oscillator's frequency of " + std::to_string(rate) + "and the simple oscillator's frequency. Also, bananas are berries and strawberries are not!!\n" << std::endl;
 }
 
 void SamplePlayer::loopSampleNTimes(int numOfLoops)
@@ -376,7 +411,7 @@ void SamplePlayer::loopSampleNTimes(int numOfLoops)
     loop = false;
 }
 
-void SamplePlayer::printThisSamplePlayer()
+void SamplePlayer::printThisSamplePlayer() const
 {
     std::cout << "\nPlayback at a sample rate of " + std::to_string(this->sampleRate) << std::endl;
 }
@@ -391,7 +426,7 @@ SamplePlayer::Sample::~Sample()
     std::cout << "\nSample being destructed!\n" << std::endl;
 }
 
-std::string SamplePlayer::Sample::printSampleInfo()
+std::string SamplePlayer::Sample::printSampleInfo() const
 {
     std::string sampleInfo = "\nSample file: " + audioFile +" Number of Channels: " + std::to_string(channels) + " Number of Bits: " + std::to_string(bitDepth) + " Sample Length: " + std::to_string(length) + " Sample Index: " + std::to_string(index) + "\n";
 
@@ -425,10 +460,23 @@ void SamplePlayer::Sample::loadingFileProgress(double lengthOfFile)
     std::cout << "\nLoading complete. Sample available at index " + std::to_string(index) + "\n" << std::endl;
 }
 
-void SamplePlayer::Sample::printThisSample()
+void SamplePlayer::Sample::printThisSample() const
 {
     std::cout << "\nBit depth reduced to " + std::to_string(this->bitDepth) + " bits\n" << std::endl;
 }
+
+struct SamplePlayerWrapper
+{
+    SamplePlayer* playaPtr{nullptr};
+
+    SamplePlayerWrapper(SamplePlayer* ptr) : playaPtr(ptr) {}
+    ~SamplePlayerWrapper()
+    {
+        delete playaPtr;
+    }
+    JUCE_LEAK_DETECTOR(SamplePlayerWrapper)
+};
+
 /*
  new UDT 4:
  with 2 member functions
@@ -444,6 +492,8 @@ struct NoiseMaker
 
     void makeNoise(double frequency, int loopCount);
     void loadAndPlaySample(std::string fileName, int loopCount); 
+
+    JUCE_LEAK_DETECTOR(NoiseMaker)
 };
 
 NoiseMaker::NoiseMaker()
@@ -473,6 +523,16 @@ void NoiseMaker::loadAndPlaySample(std::string sampleName, int loopCount)
 
     std::cout << "\nSample loaded and playing\n" << std::endl;
 }
+
+struct NoiseMakerWrapper
+{
+    NoiseMaker* noisePtr{nullptr};
+    NoiseMakerWrapper(NoiseMaker* ptr) : noisePtr(ptr) {}
+    ~NoiseMakerWrapper()
+    {
+        delete noisePtr;
+    }
+};
 /*
  new UDT 5:
  with 2 member functions
@@ -488,6 +548,8 @@ struct Sampler
 
     void setInputForSampling(double amplitude, int deviceID);
     void crushSample(std::string fileName, int bitDepth);
+
+    JUCE_LEAK_DETECTOR(Sampler)
 };
 
 Sampler::Sampler()
@@ -516,11 +578,23 @@ void Sampler::crushSample(std::string fileName, int bitDepth)
     std::cout << "\nSample file " + fileName + " has been reduced to " + std::to_string(bitDepth) << std::endl;
 }
 
+struct SamplerWrapper
+{
+    Sampler* samplerPtr{nullptr};
+
+    SamplerWrapper(Sampler* ptr) : samplerPtr(ptr) {}
+    ~SamplerWrapper()
+    {
+        delete samplerPtr;
+    }
+    JUCE_LEAK_DETECTOR(SamplerWrapper)
+};
+
 /*
  MAKE SURE YOU ARE NOT ON THE MASTER BRANCH
 
  Commit your changes by clicking on the Source Control panel on the left, entering a message, and click [Commit and push].
- 
+
  If you didn't already: 
     Make a pull request after you make your first commit
     pin the pull request link and this repl.it link to our DM thread in a single message.
@@ -531,33 +605,34 @@ void Sampler::crushSample(std::string fileName, int bitDepth)
  */
 
 #include <iostream>
+#include "LeakedObjectDetector.h"
 int main()
 {
-    SimpleOscillator osc;
-    osc.setOscillatorFrequency(9.0210);
-    osc.acceptControlVoltage(true);
-    osc.sendOutputToOtherDevices(107.3);
-    osc.sweepFrequencies(45, 6000, 1);
-    std::cout << "\nSetting Oscillator Frequency to " + std::to_string(osc.frequency) + " Hz\n" << std::endl;
-    osc.printThisOscillator();
-    
-    
+    SimpleOscillatorWrapper osc(new SimpleOscillator());
+    osc.oscPtr->setOscillatorFrequency(9.0210);
+    osc.oscPtr->acceptControlVoltage(true);
+    osc.oscPtr->sendOutputToOtherDevices(107.3);
+    osc.oscPtr->sweepFrequencies(45, 6000, 1);
+    std::cout << "\nSetting Oscillator Frequency to " + std::to_string(osc.oscPtr->frequency) + " Hz\n" << std::endl;
+    osc.oscPtr->printThisOscillator();
 
-    AudioInput audioInput;
-    audioInput.processInputStream(true);
-    audioInput.invertInputPolarity(false);
-    audioInput.setInputAmplitude(3.9);
-    audioInput.increaseSaturation();
-    std::cout << "\nSetting Input Amplitude to " + std::to_string(audioInput.amplitude) + " \n" << std::endl;
-    audioInput.printThisAudioInput();
 
-    SamplePlayer playa;
-    playa.playSample();
-    playa.loopSample();
-    playa.modulateSampleRate(osc);
-    playa.loopSampleNTimes(12);
-    std::cout << "\nPlayback at a sample rate of " + std::to_string(playa.sampleRate) << std::endl;
-    playa.printThisSamplePlayer();
+
+    AudioInputWrapper audioInput(new AudioInput());
+    audioInput.inputPtr->processInputStream(true);
+    audioInput.inputPtr->invertInputPolarity(false);
+    audioInput.inputPtr->setInputAmplitude(3.9);
+    audioInput.inputPtr->increaseSaturation();
+    std::cout << "\nSetting Input Amplitude to " + std::to_string(audioInput.inputPtr->amplitude) + " \n" << std::endl;
+    audioInput.inputPtr->printThisAudioInput();
+
+    SamplePlayerWrapper playa(new SamplePlayer());
+    playa.playaPtr->playSample();
+    playa.playaPtr->loopSample();
+    playa.playaPtr->modulateSampleRate(23.4);
+    playa.playaPtr->loopSampleNTimes(12);
+    std::cout << "\nPlayback at a sample rate of " + std::to_string(playa.playaPtr->sampleRate) << std::endl;
+    playa.playaPtr->printThisSamplePlayer();
 
     SamplePlayer::Sample sampl;
     sampl.loadSample("./samples/snare.wav");
@@ -567,7 +642,7 @@ int main()
     sampl.printThisSample();
 
     AudioInput::AudioInputProperties audioInputProps;
-    audioInputProps.getAudioProps(audioInput);
+    audioInputProps.getAudioProps(*audioInput.inputPtr);
     audioInputProps.getSampleRate();
     audioInputProps.setAudioDevice(1);
     audioInputProps.setDefaultDeviceSettings();
@@ -578,14 +653,14 @@ int main()
     std::cout << "Audio Device sample rate is set to " + std::to_string(audioInputProps.sampleRate) + "\n" << std::endl;
     audioInputProps.printThisAudioInputProperties();
 
-    NoiseMaker noizy;
-    noizy.makeNoise(9.0210, 12);
-    noizy.loadAndPlaySample("./samples/snare.wav", 12);
+    NoiseMakerWrapper noizy(new NoiseMaker());
+    noizy.noisePtr->makeNoise(9.0210, 12);
+    noizy.noisePtr->loadAndPlaySample("./samples/snare.wav", 12);
 
-    Sampler sampler;
-    sampler.setInputForSampling(3.9, 1);
-    sampler.crushSample("./samples/snare.wav", 8);
-    
+    SamplerWrapper sampler(new Sampler());
+    sampler.samplerPtr->setInputForSampling(3.9, 1);
+    sampler.samplerPtr->crushSample("./samples/snare.wav", 8);
+
     std::cout << "good to go!" << std::endl;
 
     return 0;
